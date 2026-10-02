@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order System - Event Driven Microservices</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+    }
+    p.subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #444;
+      font-weight: 500;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border 0.2s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #result {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+      font-size: 0.95rem;
+    }
+    #result.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+      display: block;
+    }
+    #result.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛒 Place Order</h1>
+    <p class="subtitle">Event-Driven Microservices PoC</p>
+
+    <form id="orderForm">
+      <label for="customer">Customer Name</label>
+      <input type="text" id="customer" placeholder="Juan Dela Cruz" required>
+
+      <label for="product">Product</label>
+      <select id="product" required>
+        <option value="Laptop">Laptop</option>
+        <option value="Smartphone">Smartphone</option>
+        <option value="Headphones">Headphones</option>
+        <option value="Keyboard">Keyboard</option>
+        <option value="Monitor">Monitor</option>
+      </select>
+
+      <label for="quantity">Quantity</label>
+      <input type="number" id="quantity" min="1" value="1" required>
+
+      <button type="submit" id="submitBtn">Submit Order</button>
+    </form>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('orderForm');
+    const resultDiv = document.getElementById('result');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      resultDiv.style.display = 'none';
+
+      const payload = {
+        customer: document.getElementById('customer').value,
+        product: document.getElementById('product').value,
+        quantity: parseInt(document.getElementById('quantity').value)
+      };
+
+      try {
+        const res = await fetch('http://localhost:8080/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          resultDiv.className = 'success';
+          resultDiv.innerHTML = `
+            <strong>Order placed successfully!</strong><br>
+            Order ID: ${data.order.id}<br>
+            Product: ${data.order.product}<br>
+            Qty: ${data.order.quantity}
+          `;
+        } else {
+          throw new Error(data.error || 'Something went wrong');
+        }
+      } catch (err) {
+        resultDiv.className = 'error';
+        resultDiv.textContent = 'Error: ' + err.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Order';
+      }
+    });
+  </script>
+</body>
+</html>
